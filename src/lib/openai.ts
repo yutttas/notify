@@ -13,8 +13,8 @@ console.log('[openai] OpenAI client initialized successfully')
 
 export const openai = new OpenAI({
   apiKey,
-  timeout: 50000, // 50秒のタイムアウト
-  maxRetries: 2, // 最大2回リトライ
+  timeout: 60000, // 60秒のタイムアウト（余裕を持たせる）
+  maxRetries: 3, // 最大3回リトライ
 })
 
 const CATEGORY_NAMES: Record<CategoryType, string> = {
@@ -40,13 +40,12 @@ export async function analyzeCoupleDifferences(
   try {
     console.log('[analyzeCoupleDifferences] Starting analysis')
 
-    // 各人のスコアを計算（50点満点 = 10問×5点）
+    // 各人のスコアを計算（50点満点）
     const hostTotalScore = Object.values(hostAnswers).reduce((sum, score) => sum + score, 0)
     const guestTotalScore = Object.values(guestAnswers).reduce((sum, score) => sum + score, 0)
 
-    // 合計スコア（100点満点 = 50点×2人）※内部計算用のみ、ユーザーには非表示
+    // 合計スコア（100点満点）
     const totalScore = hostTotalScore + guestTotalScore
-    console.log('[analyzeCoupleDifferences] Total score calculated (internal use only):', totalScore)
 
     // スコア差分を計算
     const diffs: ScoreDiff[] = questions.map((q) => ({
@@ -83,65 +82,34 @@ export async function analyzeCoupleDifferences(
 
     // グレード判定（100点満点スコアベース）
     const grade = calculateGrade(totalScore, avgDiff)
-    console.log('[analyzeCoupleDifferences] Grade calculated:', grade)
 
-    // カテゴリー別レポート生成（順次実行でタイムアウトを防ぐ）
-    console.log('[analyzeCoupleDifferences] Generating category reports...')
+    // カテゴリー別レポート生成（self_assessmentは除外）
     const categoryReports: CategoryReport[] = []
-
     for (const [category, avgCategoryDiff] of categoryAvgs.entries()) {
-      console.log('[analyzeCoupleDifferences] Processing category:', category)
+      // 総合：自己評価カテゴリーはレポートに含めない
+      if (category === 'self_assessment') continue
+
       const categoryQuestions = diffs.filter((d) => d.category === category)
       const categoryScore = categoryScores.get(category) || 0
       const categoryMaxScore = (categoryCounts.get(category) || 1) * 5 * 2 // 質問数 × 5点 × 2人
       const status = getCategoryStatus(categoryScore, categoryMaxScore, avgCategoryDiff)
 
-      try {
-        const report = await generateCategoryReport(
-          category,
-          categoryQuestions,
-          avgCategoryDiff,
-          categoryScore,
-          categoryMaxScore
-        )
+      console.log(`[analyzeCoupleDifferences] Generating report for category: ${category}`)
+      const report = await generateCategoryReport(category, categoryQuestions, avgCategoryDiff, categoryScore, categoryMaxScore)
 
-        categoryReports.push({
-          category,
-          categoryName: CATEGORY_NAMES[category],
-          status,
-          report,
-        })
-
-        console.log('[analyzeCoupleDifferences] Category report generated for:', category)
-      } catch (error) {
-        console.error('[analyzeCoupleDifferences] Failed to generate report for category:', category, error)
-        // フォールバック: エラーが発生してもシンプルなレポートで続行
-        categoryReports.push({
-          category,
-          categoryName: CATEGORY_NAMES[category],
-          status,
-          report: `${CATEGORY_NAMES[category]}について分析を行いました。詳細な分析は現在利用できませんが、全体的な傾向から判断すると${status}の状態です。`,
-        })
-      }
+      categoryReports.push({
+        category,
+        categoryName: CATEGORY_NAMES[category],
+        status,
+        report,
+      })
     }
-
-    console.log('[analyzeCoupleDifferences] Category reports generated:', categoryReports.length)
 
     // 全体サマリー生成
-    console.log('[analyzeCoupleDifferences] Generating overall summary...')
-    let summary: string
-    try {
-      summary = await generateOverallSummary(grade, categoryReports, totalScore)
-      console.log('[analyzeCoupleDifferences] Overall summary generated successfully')
-    } catch (error) {
-      console.error('[analyzeCoupleDifferences] Failed to generate overall summary:', error)
-      // フォールバック: シンプルなサマリーを生成（点数は非表示）
-      const gradeText = grade === 'excellent' ? '非常に良好' : grade === 'good' ? '良好' : grade === 'caution' ? 'すれ違いの可能性あり' : '話し合いの必要あり'
-      summary = `お二人の診断結果は「${gradeText}」です。各カテゴリーの詳細をご確認の上、お二人で話し合う機会を持たれることをお勧めします。より良い関係を築いていくための第一歩として、このレポートをご活用ください。`
-    }
+    console.log('[analyzeCoupleDifferences] Generating overall summary')
+    const summary = await generateOverallSummary(grade, categoryReports, totalScore)
 
     console.log('[analyzeCoupleDifferences] Analysis completed successfully')
-
     return {
       summary,
       grade,
@@ -153,7 +121,22 @@ export async function analyzeCoupleDifferences(
       console.error('[analyzeCoupleDifferences] Error message:', error.message)
       console.error('[analyzeCoupleDifferences] Error stack:', error.stack)
     }
-    throw new Error(`OpenAI API呼び出しに失敗しました: ${error instanceof Error ? error.message : String(error)}`)
+
+    // OpenAI APIのエラーの詳細を判定
+    let errorMessage = 'AI分析処理でエラーが発生しました。'
+    if (error instanceof Error) {
+      if (error.message.includes('timeout') || error.message.includes('timed out')) {
+        errorMessage = 'AI分析がタイムアウトしました。もう一度お試しください。'
+      } else if (error.message.includes('rate limit')) {
+        errorMessage = 'アクセスが集中しています。少し時間をおいてからお試しください。'
+      } else if (error.message.includes('API key')) {
+        errorMessage = 'サーバー設定エラーが発生しました。管理者にお問い合わせください。'
+      } else {
+        errorMessage = `AI分析処理に失敗しました: ${error.message}`
+      }
+    }
+
+    throw new Error(errorMessage)
   }
 }
 
@@ -166,30 +149,60 @@ async function generateCategoryReport(
 ): Promise<string> {
   const scorePercentage = (categoryScore / categoryMaxScore) * 100
 
-  // プロンプトを簡潔にして応答速度を向上
+  // 差分が大きい質問を特定
+  const largeGapQuestions = questions.filter(q => q.diff >= 2)
+  const moderateGapQuestions = questions.filter(q => q.diff >= 1 && q.diff < 2)
+
+  // 質問ごとの差分情報を構築（具体的な差分値は含めるが、個別スコアは含めない）
+  const questionDetails = questions.map(q => {
+    const gapLevel = q.diff >= 2 ? '大きなずれ' : q.diff >= 1 ? 'ずれ' : '小さなずれ'
+    return `質問「${q.questionText}」: ${gapLevel}`
+  }).join('\n')
+
+  // カテゴリー別の具体的なアドバイスのヒント
+  const categoryAdvice: Record<CategoryType, string> = {
+    vision: '将来のビジョンや金銭感覚など、方向性に関わる重要な領域です。大きなずれがある場合は、具体的に「金銭面や将来設計について、じっくり話し合う時間を持つことをお勧めします」のようなアドバイスを。',
+    operation: '家事分担や時間配分など、日常の運営に関わる領域です。ずれがある場合は、「家事分担のルールや、お互いの時間の使い方について話し合ってみましょう」のようなアドバイスを。',
+    communication: '対話や心理的安全性に関わる領域です。ずれがある場合は、「コミュニケーションの頻度や方法について、お互いの期待を共有してみましょう」のようなアドバイスを。',
+    trust: '信頼関係やパートナーシップに関わる領域です。ずれがある場合は、「お互いへの期待や関係性について、率直に語り合う時間を作ってみましょう」のようなアドバイスを。',
+    self_assessment: '総合的な自己評価の領域です。',
+  }
+
+  // プロンプトを詳細化して、具体的なアドバイスを生成
   const prompt = `カテゴリー: ${CATEGORY_NAMES[category]}
-平均差分: ${avgDiff.toFixed(1)}
-達成率: ${scorePercentage.toFixed(1)}%
+${questionDetails}
 
-夫婦関係のカウンセラーとして、上記データから2-3行の前向きなアドバイスを日本語で。数値は暴露しないこと。`
+${largeGapQuestions.length > 0 ? `\n特に大きなずれがある質問: ${largeGapQuestions.map(q => q.questionText).join('、')}` : ''}
 
-  const completion = await openai.chat.completions.create({
-    model: 'gpt-4o-mini',
-    messages: [
-      {
-        role: 'system',
-        content: '夫婦関係の専門カウンセラー。簡潔で前向きなアドバイスをする。',
-      },
-      {
-        role: 'user',
-        content: prompt,
-      },
-    ],
-    temperature: 0.7,
-    max_tokens: 200,
-  })
+【重要な指示】
+1. お二人の認識のずれている具体的なポイントを2〜3行で指摘してください
+2. その後、「〜について話し合う時間を持つことをお勧めします」のような具体的なアドバイスを1〜2行で追加してください
+3. 数値（点数や割合）は絶対に含めないでください
+4. ${categoryAdvice[category]}
+5. 温かく、前向きなトーンで伝えてください`
 
-  return completion.choices[0]?.message?.content?.trim() || 'レポートの生成に失敗しました。'
+  try {
+    const completion = await openai.chat.completions.create({
+      model: 'gpt-4o-mini',
+      messages: [
+        {
+          role: 'system',
+          content: 'あなたは夫婦関係の専門カウンセラーです。お二人の回答の違いから、認識のずれているポイントを具体的に指摘し、建設的なアドバイスを提供します。点数などの数値は一切言及せず、温かく前向きなアドバイスを心がけてください。',
+        },
+        {
+          role: 'user',
+          content: prompt,
+        },
+      ],
+      temperature: 0.7,
+      max_tokens: 350,
+    })
+
+    return completion.choices[0]?.message?.content?.trim() || 'レポートの生成に失敗しました。'
+  } catch (error) {
+    console.error(`[generateCategoryReport] Error for category ${category}:`, error)
+    throw error
+  }
 }
 
 async function generateOverallSummary(
@@ -210,23 +223,28 @@ async function generateOverallSummary(
 
 夫婦関係のカウンセラーとして、3-4行の前向きな総合メッセージを日本語で。具体的な点数は言及しないこと。`
 
-  const completion = await openai.chat.completions.create({
-    model: 'gpt-4o-mini',
-    messages: [
-      {
-        role: 'system',
-        content: '夫婦関係の専門カウンセラー。温かく前向きなメッセージを伝える。',
-      },
-      {
-        role: 'user',
-        content: prompt,
-      },
-    ],
-    temperature: 0.7,
-    max_tokens: 300,
-  })
+  try {
+    const completion = await openai.chat.completions.create({
+      model: 'gpt-4o-mini',
+      messages: [
+        {
+          role: 'system',
+          content: '夫婦関係の専門カウンセラー。温かく前向きなメッセージを伝える。',
+        },
+        {
+          role: 'user',
+          content: prompt,
+        },
+      ],
+      temperature: 0.7,
+      max_tokens: 300,
+    })
 
-  return completion.choices[0]?.message?.content?.trim() || 'レポートの生成に失敗しました。'
+    return completion.choices[0]?.message?.content?.trim() || 'レポートの生成に失敗しました。'
+  } catch (error) {
+    console.error('[generateOverallSummary] Error:', error)
+    throw error
+  }
 }
 
 function getCategoryStatus(categoryScore: number, categoryMaxScore: number, avgDiff: number): string {

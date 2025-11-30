@@ -69,9 +69,9 @@ export const QUESTIONS: Question[] = [
 ]
 
 export const SCORE_OPTIONS = [
-  { value: 5, label: '納得している' },
-  { value: 4, label: 'やや納得している' },
+  { value: 1, label: '不満' },
+  { value: 2, label: 'やや不満' },
   { value: 3, label: '普通' },
-  { value: 2, label: 'やや不満を感じている' },
-  { value: 1, label: '不満を感じている' },
+  { value: 4, label: 'やや納得' },
+  { value: 5, label: '納得' },
 ]

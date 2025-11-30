@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation'
 import { submitAnswer } from '@/actions/answer'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { QUESTIONS, SCORE_OPTIONS } from '@/constants/questions'
 import type { UserType } from '@/types'
 import { ChevronLeft, ChevronRight, Send } from 'lucide-react'
@@ -91,21 +90,85 @@ export function QuestionForm({ roomId, userType }: QuestionFormProps) {
         <CardDescription>あなたの気持ちに近いものを選んでください</CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
-        <RadioGroup
-          value={answers[currentQuestion.id]?.toString()}
-          onValueChange={(value) => {
-            setAnswers((prev) => ({
-              ...prev,
-              [currentQuestion.id]: parseInt(value),
-            }))
-          }}
-        >
-          {SCORE_OPTIONS.map((option) => (
-            <RadioGroupItem key={option.value} value={option.value.toString()}>
-              <span className="font-medium">{option.label}</span>
-            </RadioGroupItem>
-          ))}
-        </RadioGroup>
+        <div className="space-y-6">
+          {/* 選択中の回答を大きく表示 */}
+          <div className="text-center py-3">
+            <div className="inline-block rounded-lg bg-gradient-to-r from-indigo-50 to-purple-50 px-8 py-4 border-2 border-indigo-200 shadow-sm">
+              <p className="text-xs text-gray-500 mb-1">選択中の回答</p>
+              <p className="text-2xl font-bold text-indigo-900">
+                {SCORE_OPTIONS.find((opt) => opt.value === (answers[currentQuestion.id] || 3))?.label || '普通'}
+              </p>
+            </div>
+          </div>
+
+          {/* ラベル表示 */}
+          <div className="flex justify-between text-xs text-gray-600 px-1 mb-2">
+            {SCORE_OPTIONS.map((option) => (
+              <div
+                key={option.value}
+                className={`flex-1 text-center transition-all ${
+                  answers[currentQuestion.id] === option.value
+                    ? 'font-bold text-purple-700 scale-110'
+                    : 'opacity-60'
+                }`}
+              >
+                <div className="whitespace-pre-wrap leading-tight">{option.label}</div>
+              </div>
+            ))}
+          </div>
+
+          {/* スライダー */}
+          <div className="relative px-2 py-4">
+            <input
+              type="range"
+              min="1"
+              max="5"
+              step="1"
+              value={answers[currentQuestion.id] || 3}
+              onChange={(e) => {
+                setAnswers((prev) => ({
+                  ...prev,
+                  [currentQuestion.id]: parseInt(e.target.value),
+                }))
+              }}
+              className="w-full h-3 bg-gradient-to-r from-rose-200 via-amber-100 to-teal-200 rounded-lg appearance-none cursor-pointer slider"
+              style={{
+                background: 'linear-gradient(to right, #fecdd3 0%, #fef3c7 50%, #ccfbf1 100%)',
+              }}
+            />
+            {/* スライダーのスタイルを追加 */}
+            <style jsx>{`
+              .slider::-webkit-slider-thumb {
+                appearance: none;
+                width: 28px;
+                height: 28px;
+                border-radius: 50%;
+                background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+                cursor: pointer;
+                box-shadow: 0 2px 8px rgba(99, 102, 241, 0.4);
+                transition: all 0.2s ease;
+              }
+              .slider::-webkit-slider-thumb:hover {
+                transform: scale(1.1);
+                box-shadow: 0 4px 12px rgba(99, 102, 241, 0.6);
+              }
+              .slider::-moz-range-thumb {
+                width: 28px;
+                height: 28px;
+                border-radius: 50%;
+                background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+                cursor: pointer;
+                border: none;
+                box-shadow: 0 2px 8px rgba(99, 102, 241, 0.4);
+                transition: all 0.2s ease;
+              }
+              .slider::-moz-range-thumb:hover {
+                transform: scale(1.1);
+                box-shadow: 0 4px 12px rgba(99, 102, 241, 0.6);
+              }
+            `}</style>
+          </div>
+        </div>
 
         <div className="flex items-center justify-between gap-4 pt-4">
           <Button
