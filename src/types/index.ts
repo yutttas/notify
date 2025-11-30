@@ -4,7 +4,7 @@ export type UserType = 'host' | 'guest'
 export type GapGrade = 'excellent' | 'good' | 'caution' | 'attention'
 
 // Category types
-export type CategoryType = 'vision' | 'operation' | 'communication' | 'trust'
+export type CategoryType = 'vision' | 'operation' | 'communication' | 'trust' | 'self_assessment'
 
 export interface CategoryReport {
   category: CategoryType

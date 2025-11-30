@@ -22,6 +22,7 @@ const CATEGORY_NAMES: Record<CategoryType, string> = {
   operation: '運営・役割分担',
   communication: '対話・心理的安全性（風通しの良さ）',
   trust: '信頼・パートナーシップ（関係の質）',
+  self_assessment: '総合：自己評価',
 }
 
 interface ScoreDiff {
@@ -39,11 +40,11 @@ export async function analyzeCoupleDifferences(
   try {
     console.log('[analyzeCoupleDifferences] Starting analysis')
 
-    // 各人のスコアを計算（45点満点 = 9問×5点）
+    // 各人のスコアを計算（50点満点 = 10問×5点）
     const hostTotalScore = Object.values(hostAnswers).reduce((sum, score) => sum + score, 0)
     const guestTotalScore = Object.values(guestAnswers).reduce((sum, score) => sum + score, 0)
 
-    // 合計スコア（90点満点 = 45点×2人）※内部計算用のみ、ユーザーには非表示
+    // 合計スコア（100点満点 = 50点×2人）※内部計算用のみ、ユーザーには非表示
     const totalScore = hostTotalScore + guestTotalScore
     console.log('[analyzeCoupleDifferences] Total score calculated (internal use only):', totalScore)
 
@@ -247,17 +248,17 @@ function getCategoryStatus(categoryScore: number, categoryMaxScore: number, avgD
 }
 
 function calculateGrade(totalScore: number, avgDiff: number): GapGrade {
-  // 総合評価: 90点満点（9問×5点×2人）
-  // 非常に良好: 81〜90 (90%)
-  // 良好: 72〜80 (80%)
-  // すれ違いの可能性あり: 54〜71 (60%)
-  // 話し合いの必要あり: 〜53
+  // 総合評価: 100点満点（10問×5点×2人）
+  // 非常に良好: 90〜100 (90%)
+  // 良好: 80〜89 (80%)
+  // すれ違いの可能性あり: 60〜79 (60%)
+  // 話し合いの必要あり: 〜59
   // 1、2が出たら（つまり非常に低いスコア）必然的に「話し合いの必要あり」
 
-  if (totalScore < 36 || avgDiff >= 2.5) return 'attention' // 話し合いの必要あり
-  if (totalScore >= 81 && avgDiff <= 1.0) return 'excellent' // 非常に良好
-  if (totalScore >= 72 && avgDiff <= 1.5) return 'good' // 良好
-  if (totalScore >= 54) return 'caution' // すれ違いの可能性あり
+  if (totalScore < 40 || avgDiff >= 2.5) return 'attention' // 話し合いの必要あり
+  if (totalScore >= 90 && avgDiff <= 1.0) return 'excellent' // 非常に良好
+  if (totalScore >= 80 && avgDiff <= 1.5) return 'good' // 良好
+  if (totalScore >= 60) return 'caution' // すれ違いの可能性あり
 
   return 'attention' // 話し合いの必要あり
 }
