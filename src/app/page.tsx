@@ -60,7 +60,7 @@ export default function HomePage() {
           </div>
           <CardTitle className="text-5xl font-bold text-gray-800">Notify</CardTitle>
           <CardDescription className="mt-2 text-base text-gray-600">
-            夫婦の関係性診断
+            夫婦の関係性診断サービス
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
