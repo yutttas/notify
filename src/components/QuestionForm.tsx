@@ -46,20 +46,27 @@ export function QuestionForm({ roomId, userType }: QuestionFormProps) {
 
     setIsSubmitting(true)
     try {
+      console.log('[QuestionForm] Submitting answers for room:', roomId)
       const result = await submitAnswer(roomId, userType, answers)
+
+      console.log('[QuestionForm] Submit result:', result)
 
       if (result.success) {
         if (result.shouldShowResult) {
+          console.log('[QuestionForm] Redirecting to result page')
           router.push(`/room/${roomId}/result`)
         } else {
+          console.log('[QuestionForm] Waiting for partner, refreshing page')
           router.refresh()
         }
       } else {
-        alert(result.error || '回答の送信に失敗しました。')
+        console.error('[QuestionForm] Submit failed:', result.error)
+        alert(result.error || '回答の送信に失敗しました。もう一度お試しください。')
       }
     } catch (error) {
-      console.error('Submit error:', error)
-      alert('回答の送信に失敗しました。')
+      console.error('[QuestionForm] Submit error:', error)
+      const errorMessage = error instanceof Error ? error.message : '不明なエラーが発生しました'
+      alert(`回答の送信に失敗しました。もう一度お試しください。\n\nエラー: ${errorMessage}`)
     } finally {
       setIsSubmitting(false)
     }

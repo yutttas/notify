@@ -4,11 +4,17 @@ import type { GapGrade, AnalysisResult, CategoryReport, CategoryType } from '@/t
 const apiKey = process.env.OPENAI_API_KEY
 
 if (!apiKey) {
-  throw new Error('OpenAI APIキーが設定されていません。.env.localファイルを確認してください。')
+  const errorMsg = 'OpenAI APIキーが設定されていません。Vercelの環境変数設定でOPENAI_API_KEYを設定してください。'
+  console.error('[openai]', errorMsg)
+  throw new Error(errorMsg)
 }
+
+console.log('[openai] OpenAI client initialized successfully')
 
 export const openai = new OpenAI({
   apiKey,
+  timeout: 50000, // 50秒のタイムアウト
+  maxRetries: 2, // 最大2回リトライ
 })
 
 const CATEGORY_NAMES: Record<CategoryType, string> = {
@@ -32,12 +38,15 @@ export async function analyzeCoupleDifferences(
   questions: Array<{ id: string; text: string; category: CategoryType }>
 ): Promise<AnalysisResult & { categoryReports: CategoryReport[] }> {
   try {
+    console.log('[analyzeCoupleDifferences] Starting analysis')
+
     // 各人のスコアを計算（50点満点）
     const hostTotalScore = Object.values(hostAnswers).reduce((sum, score) => sum + score, 0)
     const guestTotalScore = Object.values(guestAnswers).reduce((sum, score) => sum + score, 0)
 
     // 合計スコア（100点満点）
     const totalScore = hostTotalScore + guestTotalScore
+    console.log('[analyzeCoupleDifferences] Total score:', totalScore)
 
     // スコア差分を計算
     const diffs: ScoreDiff[] = questions.map((q) => ({
@@ -74,9 +83,10 @@ export async function analyzeCoupleDifferences(
 
     // グレード判定（100点満点スコアベース）
     const grade = calculateGrade(totalScore, avgDiff)
+    console.log('[analyzeCoupleDifferences] Grade calculated:', grade)
 
-    // カテゴリー別レポート生成
-    // カテゴリー別レポート生成
+    // カテゴリー別レポート生成（並列実行）
+    console.log('[analyzeCoupleDifferences] Generating category reports...')
     const reportPromises = Array.from(categoryAvgs.entries()).map(async ([category, avgCategoryDiff]) => {
       const categoryQuestions = diffs.filter((d) => d.category === category)
       const categoryScore = categoryScores.get(category) || 0
@@ -94,9 +104,12 @@ export async function analyzeCoupleDifferences(
     })
 
     const categoryReports = await Promise.all(reportPromises)
+    console.log('[analyzeCoupleDifferences] Category reports generated:', categoryReports.length)
 
     // 全体サマリー生成
+    console.log('[analyzeCoupleDifferences] Generating overall summary...')
     const summary = await generateOverallSummary(grade, categoryReports, totalScore)
+    console.log('[analyzeCoupleDifferences] Analysis completed successfully')
 
     return {
       summary,
@@ -104,10 +117,10 @@ export async function analyzeCoupleDifferences(
       categoryReports,
     }
   } catch (error) {
-    console.error('OpenAI API error details:', error)
+    console.error('[analyzeCoupleDifferences] Error details:', error)
     if (error instanceof Error) {
-      console.error('Error message:', error.message)
-      console.error('Error stack:', error.stack)
+      console.error('[analyzeCoupleDifferences] Error message:', error.message)
+      console.error('[analyzeCoupleDifferences] Error stack:', error.stack)
     }
     throw new Error(`OpenAI API呼び出しに失敗しました: ${error instanceof Error ? error.message : String(error)}`)
   }

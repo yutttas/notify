@@ -4,6 +4,9 @@ import { supabase } from '@/lib/supabase'
 import { revalidatePath } from 'next/cache'
 import type { Room, CategoryReport } from '@/types'
 
+// Vercel環境でのタイムアウトを60秒に設定
+export const maxDuration = 60
+
 export async function createRoom(): Promise<{ success: boolean; roomId?: string; error?: string }> {
   try {
     const { data, error } = await supabase
@@ -50,19 +53,24 @@ export async function updateRoom(
   updates: { status?: string; summary_report?: string; gap_grade?: string; category_reports?: CategoryReport[] }
 ): Promise<{ success: boolean; error?: string }> {
   try {
+    console.log('[updateRoom] Updating room:', roomId, 'with status:', updates.status)
+
     const { error } = await supabase.from('rooms').update(updates).eq('id', roomId)
 
     if (error) {
-      console.error('Room update error:', error)
+      console.error('[updateRoom] Room update error:', error)
       return { success: false, error: error.message }
     }
+
+    console.log('[updateRoom] Room updated successfully')
 
     revalidatePath(`/room/${roomId}`)
     revalidatePath(`/room/${roomId}/result`)
 
     return { success: true }
   } catch (error) {
-    console.error('Unexpected error updating room:', error)
-    return { success: false, error: 'ルーム情報の更新に失敗しました。' }
+    console.error('[updateRoom] Unexpected error:', error)
+    const errorMessage = error instanceof Error ? error.message : String(error)
+    return { success: false, error: `ルーム情報の更新に失敗しました: ${errorMessage}` }
   }
 }
