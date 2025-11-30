@@ -85,30 +85,61 @@ export async function analyzeCoupleDifferences(
     const grade = calculateGrade(totalScore, avgDiff)
     console.log('[analyzeCoupleDifferences] Grade calculated:', grade)
 
-    // カテゴリー別レポート生成（並列実行）
+    // カテゴリー別レポート生成（順次実行でタイムアウトを防ぐ）
     console.log('[analyzeCoupleDifferences] Generating category reports...')
-    const reportPromises = Array.from(categoryAvgs.entries()).map(async ([category, avgCategoryDiff]) => {
+    const categoryReports: CategoryReport[] = []
+
+    for (const [category, avgCategoryDiff] of categoryAvgs.entries()) {
+      console.log('[analyzeCoupleDifferences] Processing category:', category)
       const categoryQuestions = diffs.filter((d) => d.category === category)
       const categoryScore = categoryScores.get(category) || 0
       const categoryMaxScore = (categoryCounts.get(category) || 1) * 5 * 2 // 質問数 × 5点 × 2人
       const status = getCategoryStatus(categoryScore, categoryMaxScore, avgCategoryDiff)
 
-      const report = await generateCategoryReport(category, categoryQuestions, avgCategoryDiff, categoryScore, categoryMaxScore)
+      try {
+        const report = await generateCategoryReport(
+          category,
+          categoryQuestions,
+          avgCategoryDiff,
+          categoryScore,
+          categoryMaxScore
+        )
 
-      return {
-        category,
-        categoryName: CATEGORY_NAMES[category],
-        status,
-        report,
+        categoryReports.push({
+          category,
+          categoryName: CATEGORY_NAMES[category],
+          status,
+          report,
+        })
+
+        console.log('[analyzeCoupleDifferences] Category report generated for:', category)
+      } catch (error) {
+        console.error('[analyzeCoupleDifferences] Failed to generate report for category:', category, error)
+        // フォールバック: エラーが発生してもシンプルなレポートで続行
+        categoryReports.push({
+          category,
+          categoryName: CATEGORY_NAMES[category],
+          status,
+          report: `${CATEGORY_NAMES[category]}について分析を行いました。詳細な分析は現在利用できませんが、全体的な傾向から判断すると${status}の状態です。`,
+        })
       }
-    })
+    }
 
-    const categoryReports = await Promise.all(reportPromises)
     console.log('[analyzeCoupleDifferences] Category reports generated:', categoryReports.length)
 
     // 全体サマリー生成
     console.log('[analyzeCoupleDifferences] Generating overall summary...')
-    const summary = await generateOverallSummary(grade, categoryReports, totalScore)
+    let summary: string
+    try {
+      summary = await generateOverallSummary(grade, categoryReports, totalScore)
+      console.log('[analyzeCoupleDifferences] Overall summary generated successfully')
+    } catch (error) {
+      console.error('[analyzeCoupleDifferences] Failed to generate overall summary:', error)
+      // フォールバック: シンプルなサマリーを生成
+      const gradeText = grade === 'excellent' ? '非常に良好' : grade === 'good' ? '良好' : grade === 'caution' ? 'すれ違いの可能性あり' : '話し合いの必要あり'
+      summary = `お二人の診断結果は「${gradeText}」です。総合スコアは${totalScore}点でした。各カテゴリーの詳細をご確認の上、お二人で話し合う機会を持たれることをお勧めします。`
+    }
+
     console.log('[analyzeCoupleDifferences] Analysis completed successfully')
 
     return {
@@ -133,42 +164,21 @@ async function generateCategoryReport(
   categoryScore: number,
   categoryMaxScore: number
 ): Promise<string> {
-  const categoryDescriptions: Record<CategoryType, string> = {
-    vision: '金銭感覚、将来設計、教育方針など、夫婦が見ている「未来や目的」が揃っているか',
-    operation: '家事、育児、仕事（ワークライフバランス）など、日々の「タスク配分」に不公平感がないか',
-    communication: '相談のしやすさ、感謝の言葉、傾聴の姿勢など、「コミュニケーションの質」が保たれているか',
-    trust: '相手への尊敬、愛情、個人の尊重など、機能面以外での「情緒的な結びつき」が強いか',
-    self_assessment: '仕事と家庭の両立に関する自己評価',
-  }
-
   const scorePercentage = (categoryScore / categoryMaxScore) * 100
 
-  const prompt = `あなたは夫婦関係のカウンセラーです。以下のカテゴリーについて、お二人の回答の違いを分析し、簡潔なレポートを作成してください。
+  // プロンプトを簡潔にして応答速度を向上
+  const prompt = `カテゴリー: ${CATEGORY_NAMES[category]}
+平均差分: ${avgDiff.toFixed(1)}
+達成率: ${scorePercentage.toFixed(1)}%
 
-【カテゴリー】${CATEGORY_NAMES[category]}
-${categoryDescriptions[category]}
-
-【関連する質問と差分】
-${questions.map((q, i) => `${i + 1}. ${q.questionText} (差分: ${q.diff})`).join('\n')}
-
-【平均差分】${avgDiff.toFixed(1)}
-【スコア達成率】${scorePercentage.toFixed(1)}%
-
-【重要なルール】
-- 相手の具体的な回答数値は絶対に暴露しないこと
-- 断定的な批判は避け、柔らかい表現を使うこと
-- このカテゴリーに特化した観点でアドバイスすること
-- 2〜3行の簡潔な日本語で記述すること
-
-【出力形式】
-丁寧な日本語で2〜3行のテキストのみを出力してください。`
+夫婦関係のカウンセラーとして、上記データから2-3行の前向きなアドバイスを日本語で。数値は暴露しないこと。`
 
   const completion = await openai.chat.completions.create({
     model: 'gpt-4o-mini',
     messages: [
       {
         role: 'system',
-        content: 'あなたは夫婦関係の専門カウンセラーです。優しく、前向きなアドバイスを心がけてください。',
+        content: '夫婦関係の専門カウンセラー。簡潔で前向きなアドバイスをする。',
       },
       {
         role: 'user',
@@ -176,7 +186,7 @@ ${questions.map((q, i) => `${i + 1}. ${q.questionText} (差分: ${q.diff})`).joi
       },
     ],
     temperature: 0.7,
-    max_tokens: 300,
+    max_tokens: 200,
   })
 
   return completion.choices[0]?.message?.content?.trim() || 'レポートの生成に失敗しました。'
@@ -194,28 +204,19 @@ async function generateOverallSummary(
     attention: '話し合いの必要あり',
   }
 
-  const prompt = `あなたは夫婦関係のカウンセラーです。以下の分析結果をもとに、全体的なサマリーを作成してください。
+  // プロンプトを簡潔にして応答速度を向上
+  const prompt = `評価: ${gradeDescriptions[grade]}
+スコア: ${totalScore}/100点
+カテゴリー: ${categoryReports.map((cr) => `${cr.status}`).join('、')}
 
-【総合評価】${gradeDescriptions[grade]}
-【総合スコア】${totalScore}/100点
-
-【カテゴリー別の状況】
-${categoryReports.map((cr) => `・${cr.categoryName}: ${cr.status}`).join('\n')}
-
-【重要なルール】
-- お二人の関係性を全体的に評価し、前向きなメッセージを伝えること
-- 具体的な数値は避け、温かみのある表現を使うこと
-- 3〜4行の簡潔な日本語で記述すること
-
-【出力形式】
-丁寧な日本語で3〜4行のテキストのみを出力してください。`
+夫婦関係のカウンセラーとして、3-4行の前向きな総合メッセージを日本語で。`
 
   const completion = await openai.chat.completions.create({
     model: 'gpt-4o-mini',
     messages: [
       {
         role: 'system',
-        content: 'あなたは夫婦関係の専門カウンセラーです。優しく、前向きなアドバイスを心がけてください。',
+        content: '夫婦関係の専門カウンセラー。温かく前向きなメッセージを伝える。',
       },
       {
         role: 'user',
@@ -223,7 +224,7 @@ ${categoryReports.map((cr) => `・${cr.categoryName}: ${cr.status}`).join('\n')}
       },
     ],
     temperature: 0.7,
-    max_tokens: 500,
+    max_tokens: 300,
   })
 
   return completion.choices[0]?.message?.content?.trim() || 'レポートの生成に失敗しました。'
