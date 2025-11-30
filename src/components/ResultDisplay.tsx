@@ -22,25 +22,25 @@ const GRADE_CONFIG: Record<
   }
 > = {
   excellent: {
-    label: '非常に良好',
+    label: 'すごく良い関係。引き続きその調子！',
     color: 'text-blue-700',
     bgColor: 'bg-blue-50',
     description: 'お二人の認識はほぼ一致しています',
   },
   good: {
-    label: '良好',
+    label: '良好な関係。何かあれば話し合おう！',
     color: 'text-blue-700',
     bgColor: 'bg-blue-50',
     description: '小さなすれ違いがあるようです',
   },
   caution: {
-    label: 'すれ違いの可能性あり',
+    label: 'これを機に話し合ってみると良いかも！',
     color: 'text-yellow-700',
     bgColor: 'bg-yellow-50',
     description: 'いくつか話し合いたいポイントがあります',
   },
   attention: {
-    label: '話し合いの必要あり',
+    label: 'お互いの考えを共有する時間を作る必要がありそう！',
     color: 'text-red-700',
     bgColor: 'bg-red-50',
     description: 'じっくり話し合う時間を作りましょう',
@@ -52,10 +52,11 @@ export function ResultDisplay({ summary, grade, categoryReports }: ResultDisplay
   const gradeInfo = GRADE_CONFIG[grade]
 
   const getStatusColor = (status: string) => {
-    if (status.includes('非常に良好')) return 'text-blue-700 bg-blue-50'
-    if (status.includes('良好')) return 'text-blue-700 bg-blue-50'
-    if (status.includes('すれ違い')) return 'text-yellow-700 bg-yellow-50'
-    return 'text-red-700 bg-red-50'
+    if (status.includes('すごく良い関係')) return 'text-blue-700 bg-blue-50'
+    if (status.includes('良好な関係')) return 'text-blue-700 bg-blue-50'
+    if (status.includes('話し合ってみると良いかも')) return 'text-yellow-700 bg-yellow-50'
+    if (status.includes('考えを共有する時間')) return 'text-red-700 bg-red-50'
+    return 'text-blue-700 bg-blue-50'
   }
 
   return (

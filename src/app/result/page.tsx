@@ -15,25 +15,25 @@ interface AnalysisResult {
 
 const GRADE_CONFIG: Record<GapGrade, { label: string; color: string; bgColor: string; borderColor: string }> = {
   excellent: {
-    label: '非常に良好',
+    label: 'すごく良い関係！引き続きその調子！',
     color: 'text-teal-700',
     bgColor: 'bg-teal-50',
     borderColor: 'border-teal-200'
   },
   good: {
-    label: '良好',
+    label: '良好な関係！何かあれば話し合おう！',
     color: 'text-cyan-700',
     bgColor: 'bg-cyan-50',
     borderColor: 'border-cyan-200'
   },
   caution: {
-    label: '潜在的にすれ違いの可能性あり',
+    label: 'これを機に話し合ってみると良いかも！',
     color: 'text-amber-700',
     bgColor: 'bg-amber-50',
     borderColor: 'border-amber-200'
   },
   attention: {
-    label: '話し合いの必要あり',
+    label: 'お互いの考えを共有する時間を作る必要がありそう！',
     color: 'text-rose-700',
     bgColor: 'bg-rose-50',
     borderColor: 'border-rose-200'
@@ -41,9 +41,9 @@ const GRADE_CONFIG: Record<GapGrade, { label: string; color: string; bgColor: st
 }
 
 const getStatusBadgeStyle = (status: string) => {
-  if (status.includes('非常に良好')) return 'bg-teal-100 text-teal-800 border-teal-300'
-  if (status.includes('良好')) return 'bg-cyan-100 text-cyan-800 border-cyan-300'
-  if (status.includes('潜在的')) return 'bg-amber-100 text-amber-800 border-amber-300'
+  if (status.includes('すごく良い関係')) return 'bg-teal-100 text-teal-800 border-teal-300'
+  if (status.includes('良好な関係')) return 'bg-cyan-100 text-cyan-800 border-cyan-300'
+  if (status.includes('話し合ってみると良いかも')) return 'bg-amber-100 text-amber-800 border-amber-300'
   return 'bg-rose-100 text-rose-800 border-rose-300'
 }
 
