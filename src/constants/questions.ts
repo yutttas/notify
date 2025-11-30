@@ -59,13 +59,6 @@ export const QUESTIONS: Question[] = [
     text: 'パートナーとは、今も恋人のような良い関係でいられている。',
     category: 'trust',
   },
-  // 【総合：自己評価】5点
-  {
-    id: 'q10',
-    order: 10,
-    text: '私は、仕事と家庭を上手く両立できていると思う。',
-    category: 'self_assessment',
-  },
 ]
 
 export const SCORE_OPTIONS = [
