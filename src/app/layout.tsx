@@ -5,8 +5,8 @@ import './globals.css'
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'Notify - 夫婦の関係性診断',
-  description: '夫婦間の関係性を可視化し、必要に応じて話し合いのきっかけを作る診断サービス',
+  title: 'Notify - 夫婦の関係性診断サービス',
+  description: 'AIが夫婦間の関係性をマイルドに診断します',
 }
 
 export default function RootLayout({
