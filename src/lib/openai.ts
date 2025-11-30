@@ -43,9 +43,9 @@ export async function analyzeCoupleDifferences(
     const hostTotalScore = Object.values(hostAnswers).reduce((sum, score) => sum + score, 0)
     const guestTotalScore = Object.values(guestAnswers).reduce((sum, score) => sum + score, 0)
 
-    // 合計スコア（90点満点 = 45点×2人）
+    // 合計スコア（90点満点 = 45点×2人）※内部計算用のみ、ユーザーには非表示
     const totalScore = hostTotalScore + guestTotalScore
-    console.log('[analyzeCoupleDifferences] Total score:', totalScore, '/ 90')
+    console.log('[analyzeCoupleDifferences] Total score calculated (internal use only):', totalScore)
 
     // スコア差分を計算
     const diffs: ScoreDiff[] = questions.map((q) => ({
@@ -134,9 +134,9 @@ export async function analyzeCoupleDifferences(
       console.log('[analyzeCoupleDifferences] Overall summary generated successfully')
     } catch (error) {
       console.error('[analyzeCoupleDifferences] Failed to generate overall summary:', error)
-      // フォールバック: シンプルなサマリーを生成
+      // フォールバック: シンプルなサマリーを生成（点数は非表示）
       const gradeText = grade === 'excellent' ? '非常に良好' : grade === 'good' ? '良好' : grade === 'caution' ? 'すれ違いの可能性あり' : '話し合いの必要あり'
-      summary = `お二人の診断結果は「${gradeText}」です。総合スコアは${totalScore}/90点でした。各カテゴリーの詳細をご確認の上、お二人で話し合う機会を持たれることをお勧めします。`
+      summary = `お二人の診断結果は「${gradeText}」です。各カテゴリーの詳細をご確認の上、お二人で話し合う機会を持たれることをお勧めします。より良い関係を築いていくための第一歩として、このレポートをご活用ください。`
     }
 
     console.log('[analyzeCoupleDifferences] Analysis completed successfully')
@@ -203,12 +203,11 @@ async function generateOverallSummary(
     attention: '話し合いの必要あり',
   }
 
-  // プロンプトを簡潔にして応答速度を向上
+  // プロンプトを簡潔にして応答速度を向上（点数は非表示）
   const prompt = `評価: ${gradeDescriptions[grade]}
-スコア: ${totalScore}/90点
 カテゴリー: ${categoryReports.map((cr) => `${cr.status}`).join('、')}
 
-夫婦関係のカウンセラーとして、3-4行の前向きな総合メッセージを日本語で。`
+夫婦関係のカウンセラーとして、3-4行の前向きな総合メッセージを日本語で。具体的な点数は言及しないこと。`
 
   const completion = await openai.chat.completions.create({
     model: 'gpt-4o-mini',

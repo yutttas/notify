@@ -19,7 +19,6 @@ const GRADE_CONFIG: Record<
     color: string
     bgColor: string
     description: string
-    scoreRange: string
   }
 > = {
   excellent: {
@@ -27,28 +26,24 @@ const GRADE_CONFIG: Record<
     color: 'text-blue-700',
     bgColor: 'bg-blue-50',
     description: 'お二人の認識はほぼ一致しています',
-    scoreRange: '90〜100点',
   },
   good: {
     label: '良好',
     color: 'text-blue-700',
     bgColor: 'bg-blue-50',
     description: '小さなすれ違いがあるようです',
-    scoreRange: '80〜89点',
   },
   caution: {
     label: 'すれ違いの可能性あり',
     color: 'text-yellow-700',
     bgColor: 'bg-yellow-50',
     description: 'いくつか話し合いたいポイントがあります',
-    scoreRange: '60〜79点',
   },
   attention: {
     label: '話し合いの必要あり',
     color: 'text-red-700',
     bgColor: 'bg-red-50',
     description: 'じっくり話し合う時間を作りましょう',
-    scoreRange: '20〜59点',
   },
 }
 
