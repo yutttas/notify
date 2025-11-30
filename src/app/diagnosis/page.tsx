@@ -52,7 +52,8 @@ export default function DiagnosisPage() {
   const currentQuestion = QUESTIONS[currentQuestionIndex]
   const progress = ((currentQuestionIndex + 1) / QUESTIONS.length) * 100
   const isLastQuestion = currentQuestionIndex === QUESTIONS.length - 1
-  const hasAnsweredCurrent = !!currentAnswers[currentQuestion.id]
+  // スライダーは常にデフォルト値(3)を持つため、常に回答済みとして扱う
+  const hasAnsweredCurrent = true
   const playerLabel = gameState.currentPlayer === 'player1' ? '私' : 'パートナー'
 
   const handleNext = () => {
@@ -68,10 +69,11 @@ export default function DiagnosisPage() {
   }
 
   const handleSubmit = async () => {
-    if (Object.keys(currentAnswers).length !== QUESTIONS.length) {
-      alert('すべての設問に回答してください。')
-      return
-    }
+    // すべての質問に対して回答を用意（未回答の場合はデフォルト値3を使用）
+    const completeAnswers = QUESTIONS.reduce((acc, question) => {
+      acc[question.id] = currentAnswers[question.id] ?? 3
+      return acc
+    }, {} as Record<string, number>)
 
     setIsSubmitting(true)
 
@@ -80,7 +82,7 @@ export default function DiagnosisPage() {
         // 私の回答を保存して、パートナーへ交代
         const newState: GameState = {
           currentPlayer: 'player2',
-          player1Answers: currentAnswers,
+          player1Answers: completeAnswers,
           player2Answers: {},
           isCompleted: false,
         }
@@ -92,7 +94,7 @@ export default function DiagnosisPage() {
         // パートナーの回答を保存して、結果ページへ
         const newState: GameState = {
           ...gameState,
-          player2Answers: currentAnswers,
+          player2Answers: completeAnswers,
           isCompleted: true,
         }
         saveGameState(newState)
@@ -104,7 +106,7 @@ export default function DiagnosisPage() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             player1Answers: gameState.player1Answers,
-            player2Answers: currentAnswers,
+            player2Answers: completeAnswers,
           }),
         })
 
@@ -172,6 +174,16 @@ export default function DiagnosisPage() {
           <CardDescription>あなたの気持ちに近いものを選んでください</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
+          {/* 注意事項 */}
+          <div className="space-y-2 rounded-lg bg-muted/50 p-4 text-xs text-muted-foreground border">
+            <p>
+              ⚠️ 診断内容はAI分析に基づくものです。あくまで一つの意見として参考にしてください。
+            </p>
+            <p>
+              🔒 回答内容やスコアはお互いに見えることはありませんので、安心して正直に回答してください。
+            </p>
+          </div>
+
           <div className="space-y-6">
             {/* 選択中の回答を大きく表示 */}
             <div className="text-center py-3">
@@ -183,72 +195,75 @@ export default function DiagnosisPage() {
               </div>
             </div>
 
-            {/* ラベル表示 */}
-            <div className="flex justify-between text-xs text-gray-600 px-1 mb-2">
-              {SCORE_OPTIONS.map((option) => (
-                <div
-                  key={option.value}
-                  className={`flex-1 text-center transition-all ${
-                    currentAnswers[currentQuestion.id] === option.value
-                      ? 'font-bold text-purple-700 scale-110'
-                      : 'opacity-60'
-                  }`}
-                >
-                  <div className="whitespace-pre-wrap leading-tight">{option.label}</div>
-                </div>
-              ))}
-            </div>
+            {/* スライダーとラベルを一体化 */}
+            <div className="relative px-2">
+              {/* ラベル表示 */}
+              <div className="flex justify-between text-xs text-gray-600 px-1 mb-3">
+                {SCORE_OPTIONS.map((option) => (
+                  <div
+                    key={option.value}
+                    className={`flex-1 text-center transition-all ${
+                      currentAnswers[currentQuestion.id] === option.value
+                        ? 'font-bold text-purple-700 scale-110'
+                        : 'opacity-60'
+                    }`}
+                  >
+                    <div className="whitespace-pre-wrap leading-tight">{option.label}</div>
+                  </div>
+                ))}
+              </div>
 
-            {/* スライダー */}
-            <div className="relative px-2 py-4">
-              <input
-                type="range"
-                min="1"
-                max="5"
-                step="1"
-                value={currentAnswers[currentQuestion.id] || 3}
-                onChange={(e) => {
-                  setCurrentAnswers((prev) => ({
-                    ...prev,
-                    [currentQuestion.id]: parseInt(e.target.value),
-                  }))
-                }}
-                className="w-full h-3 bg-gradient-to-r from-rose-200 via-amber-100 to-teal-200 rounded-lg appearance-none cursor-pointer slider"
-                style={{
-                  background: 'linear-gradient(to right, #fecdd3 0%, #fef3c7 50%, #ccfbf1 100%)',
-                }}
-              />
-              {/* スライダーのスタイルを追加 */}
-              <style jsx>{`
-                .slider::-webkit-slider-thumb {
-                  appearance: none;
-                  width: 28px;
-                  height: 28px;
-                  border-radius: 50%;
-                  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
-                  cursor: pointer;
-                  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.4);
-                  transition: all 0.2s ease;
-                }
-                .slider::-webkit-slider-thumb:hover {
-                  transform: scale(1.1);
-                  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.6);
-                }
-                .slider::-moz-range-thumb {
-                  width: 28px;
-                  height: 28px;
-                  border-radius: 50%;
-                  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
-                  cursor: pointer;
-                  border: none;
-                  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.4);
-                  transition: all 0.2s ease;
-                }
-                .slider::-moz-range-thumb:hover {
-                  transform: scale(1.1);
-                  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.6);
-                }
-              `}</style>
+              {/* スライダー */}
+              <div className="py-2">
+                <input
+                  type="range"
+                  min="1"
+                  max="5"
+                  step="1"
+                  value={currentAnswers[currentQuestion.id] || 3}
+                  onChange={(e) => {
+                    setCurrentAnswers((prev) => ({
+                      ...prev,
+                      [currentQuestion.id]: parseInt(e.target.value),
+                    }))
+                  }}
+                  className="w-full h-3 bg-gradient-to-r from-rose-200 via-amber-100 to-teal-200 rounded-lg appearance-none cursor-pointer slider"
+                  style={{
+                    background: 'linear-gradient(to right, #fecdd3 0%, #fef3c7 50%, #ccfbf1 100%)',
+                  }}
+                />
+                {/* スライダーのスタイルを追加 */}
+                <style jsx>{`
+                  .slider::-webkit-slider-thumb {
+                    appearance: none;
+                    width: 28px;
+                    height: 28px;
+                    border-radius: 50%;
+                    background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+                    cursor: pointer;
+                    box-shadow: 0 2px 8px rgba(99, 102, 241, 0.4);
+                    transition: all 0.2s ease;
+                  }
+                  .slider::-webkit-slider-thumb:hover {
+                    transform: scale(1.1);
+                    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.6);
+                  }
+                  .slider::-moz-range-thumb {
+                    width: 28px;
+                    height: 28px;
+                    border-radius: 50%;
+                    background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+                    cursor: pointer;
+                    border: none;
+                    box-shadow: 0 2px 8px rgba(99, 102, 241, 0.4);
+                    transition: all 0.2s ease;
+                  }
+                  .slider::-moz-range-thumb:hover {
+                    transform: scale(1.1);
+                    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.6);
+                  }
+                `}</style>
+              </div>
             </div>
           </div>
 
