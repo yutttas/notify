@@ -7,9 +7,6 @@ import { revalidatePath } from 'next/cache'
 import type { Answer, UserType } from '@/types'
 import { QUESTIONS } from '@/constants/questions'
 
-// Vercel環境でのタイムアウトを60秒に設定
-export const maxDuration = 60
-
 export async function submitAnswer(
   roomId: string,
   userType: UserType,

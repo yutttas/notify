@@ -4,9 +4,6 @@ import { supabase } from '@/lib/supabase'
 import { revalidatePath } from 'next/cache'
 import type { Room, CategoryReport } from '@/types'
 
-// Vercel環境でのタイムアウトを60秒に設定
-export const maxDuration = 60
-
 export async function createRoom(): Promise<{ success: boolean; roomId?: string; error?: string }> {
   try {
     const { data, error } = await supabase

@@ -14,6 +14,9 @@ const nextConfig = {
       fullUrl: true,
     },
   },
+  // Vercel環境での最大実行時間を60秒に設定（Hobby/Proプランで有効）
+  // https://vercel.com/docs/functions/serverless-functions/runtimes#max-duration
+  maxDuration: 60,
 }
 
 module.exports = nextConfig
