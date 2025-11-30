@@ -72,7 +72,12 @@ export default function HomePage() {
 
             <div className="space-y-2">
               <h3 className="font-semibold text-gray-800">使い方</h3>
-              <p>スマホを交代しながら、お二人でそれぞれの質問に回答してください。</p>
+              <ol className="space-y-1.5 list-decimal list-inside">
+                <li>「診断を始める」をタップして、まず<strong>あなた自身</strong>が10問の質問に回答します</li>
+                <li>回答が完了したら、スマホを<strong>パートナーに渡して</strong>ください</li>
+                <li>パートナーが同じ10問に回答します</li>
+                <li>お二人の回答が完了すると、AIが診断結果を表示します</li>
+              </ol>
             </div>
 
             <div className="space-y-2 border-t pt-3">

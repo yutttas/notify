@@ -29,18 +29,18 @@ export default function DiagnosisPage() {
     isCompleted: false,
   })
 
-  // ローカルストレージから状態を復元
+  // 初期化: 常に私の回答から始める
   useEffect(() => {
-    const saved = localStorage.getItem('notify_game_state')
-    if (saved) {
-      const parsedState = JSON.parse(saved)
-      setGameState(parsedState)
-      if (parsedState.currentPlayer === 'player1') {
-        setCurrentAnswers(parsedState.player1Answers || {})
-      } else {
-        setCurrentAnswers(parsedState.player2Answers || {})
-      }
+    // 古い状態をクリアして、常に最初から開始
+    const initialState: GameState = {
+      currentPlayer: 'player1',
+      player1Answers: {},
+      player2Answers: {},
+      isCompleted: false,
     }
+    setGameState(initialState)
+    localStorage.removeItem('notify_game_state')
+    localStorage.removeItem('notify_result')
   }, [])
 
   // 状態をローカルストレージに保存
