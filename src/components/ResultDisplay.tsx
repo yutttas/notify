@@ -113,6 +113,15 @@ export function ResultDisplay({ summary, grade, categoryReports }: ResultDisplay
           </ul>
         </div>
 
+        <div className="rounded-lg border-2 border-gray-300 bg-gray-50 p-4 text-xs text-gray-600">
+          <p className="font-semibold text-gray-700 mb-2">免責事項</p>
+          <p className="leading-relaxed">
+            本診断結果はAIによって生成されたものであり、専門的なカウンセリングや医療的なアドバイスに代わるものではありません。
+            診断結果から生じる一切の負債、不利益、トラブル等について、本サービスは責任を負いかねます。
+            結果はあくまで参考情報としてご活用いただき、重要な判断をされる際は専門家にご相談ください。
+          </p>
+        </div>
+
         <Button
           onClick={() => router.push('/')}
           variant="outline"
