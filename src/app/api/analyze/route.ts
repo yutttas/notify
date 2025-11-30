@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server'
 import { analyzeCoupleDifferences } from '@/lib/openai'
 import { QUESTIONS } from '@/constants/questions'
 
+export const maxDuration = 60
+
 export async function POST(request: Request) {
   try {
     const { player1Answers, player2Answers } = await request.json()

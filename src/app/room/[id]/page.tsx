@@ -10,6 +10,8 @@ interface RoomPageProps {
   params: Promise<{ id: string }>
 }
 
+export const maxDuration = 60
+
 export default async function RoomPage({ params }: RoomPageProps) {
   const { id: roomId } = await params
   const cookieStore = await cookies()

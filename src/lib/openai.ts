@@ -76,8 +76,8 @@ export async function analyzeCoupleDifferences(
     const grade = calculateGrade(totalScore, avgDiff)
 
     // カテゴリー別レポート生成
-    const categoryReports: CategoryReport[] = []
-    for (const [category, avgCategoryDiff] of categoryAvgs.entries()) {
+    // カテゴリー別レポート生成
+    const reportPromises = Array.from(categoryAvgs.entries()).map(async ([category, avgCategoryDiff]) => {
       const categoryQuestions = diffs.filter((d) => d.category === category)
       const categoryScore = categoryScores.get(category) || 0
       const categoryMaxScore = (categoryCounts.get(category) || 1) * 5 * 2 // 質問数 × 5点 × 2人
@@ -85,13 +85,15 @@ export async function analyzeCoupleDifferences(
 
       const report = await generateCategoryReport(category, categoryQuestions, avgCategoryDiff, categoryScore, categoryMaxScore)
 
-      categoryReports.push({
+      return {
         category,
         categoryName: CATEGORY_NAMES[category],
         status,
         report,
-      })
-    }
+      }
+    })
+
+    const categoryReports = await Promise.all(reportPromises)
 
     // 全体サマリー生成
     const summary = await generateOverallSummary(grade, categoryReports, totalScore)
