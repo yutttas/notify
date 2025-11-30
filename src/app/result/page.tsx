@@ -150,7 +150,7 @@ export default function ResultPage() {
           <CardHeader>
             <CardTitle className="text-lg text-indigo-900">💡 次のステップ</CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-4">
             <ul className="space-y-2 text-sm text-gray-700">
               <li className="flex items-start gap-2">
                 <span className="text-indigo-600 font-bold">•</span>
@@ -165,6 +165,25 @@ export default function ResultPage() {
                 <span>定期的に診断を受けることで、関係性の変化を確認できます</span>
               </li>
             </ul>
+
+            <div className="border-t border-indigo-200 pt-4">
+              <p className="text-sm text-gray-700 mb-3">
+                使ってみた感想をいただけると嬉しいです！今後のサービス改善に役立てさせていただきます。
+              </p>
+              <a
+                href="https://forms.gle/KFw5t9xcQAyBSoWo8"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="block"
+              >
+                <Button
+                  variant="outline"
+                  className="w-full border-indigo-300 bg-white hover:bg-indigo-50 text-indigo-700"
+                >
+                  感想を送る
+                </Button>
+              </a>
+            </div>
           </CardContent>
         </Card>
 
